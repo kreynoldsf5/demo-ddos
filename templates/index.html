@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DDoS Mitigation Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+            background-color: #f4f7f9;
+            color: #333;
+        }
+        h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+        h3 {
+            color: #555;
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        .chart-container {
+            width: 90%;
+            max-width: 1500px;
+            margin: 20px auto;
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        canvas {
+            width: 100% !important;
+            height: 400px !important;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #fff;
+        }
+        .header img {
+            height: 50px;
+        }
+        .divider {
+            width: 100%;
+            height: 1px;
+            background-color: #ddd;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header with F5 and DDoS icons -->
+    <div class="header">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="F5 Logo">
+        <h1>DDoS Mitigation Demo</h1>
+        <img src="{{ url_for('static', filename='images/ddos.png') }}" alt="DDoS Symbol">
+    </div>
+    <div class="divider"></div>
+
+    <div class="chart-container">
+        <h3>Requests Per Second (Last 15 minutes)</h3>
+        <canvas id="rpsChart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <h3>Connections Per Second (Last 15 minutes)</h3>
+        <canvas id="cpsChart"></canvas>
+    </div>
+
+    <script>
+        // Initialize empty datasets for RPS and CPS charts
+        let rpsData = Array(900).fill(0);
+        let cpsData = Array(900).fill(0);
+
+        // Set up chart.js configurations for RPS and CPS charts
+        const rpsCtx = document.getElementById('rpsChart').getContext('2d');
+        const cpsCtx = document.getElementById('cpsChart').getContext('2d');
+
+        const chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    left: 10,
+                    right: 10,
+                    top: 20,
+                    bottom: 10
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time (seconds ago)',
+                        color: '#666',
+                        font: {
+                            size: 14
+                        }
+                    },
+                    ticks: {
+                        autoSkip: true,
+                        maxTicksLimit: 10,
+                        color: '#666'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Requests Per Second',
+                        color: '#666',
+                        font: {
+                            size: 14
+                        }
+                    },
+                    ticks: {
+                        color: '#666'
+                    }
+                }
+            }
+        };
+
+        const rpsChart = new Chart(rpsCtx, {
+            type: 'line',
+            data: {
+                labels: Array.from({ length: 900 }, (_, i) => i),  // 15-minute time scale
+                datasets: [{
+                    label: 'Requests Per Second',
+                    data: rpsData,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 2,
+                    fill: false
+                }]
+            },
+            options: chartOptions
+        });
+
+        const cpsChart = new Chart(cpsCtx, {
+            type: 'line',
+            data: {
+                labels: Array.from({ length: 900 }, (_, i) => i),  // 15-minute time scale
+                datasets: [{
+                    label: 'Connections Per Second',
+                    data: cpsData,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 2,
+                    fill: false
+                }]
+            },
+            options: chartOptions
+        });
+
+        // Function to update the charts every second
+        function updateMetrics() {
+            fetch('/metrics')
+                .then(response => response.json())
+                .then(data => {
+                    // Update RPS chart data
+                    rpsChart.data.datasets[0].data = data.rps_last_15min;
+                    rpsChart.update();
+
+                    // Update CPS chart data
+                    cpsChart.data.datasets[0].data = data.cps_last_15min;
+                    cpsChart.update();
+                })
+                .catch(error => console.error("Error fetching metrics:", error));
+        }
+
+        // Update charts every second
+        setInterval(updateMetrics, 1000);
+    </script>
+</body>
+</html>

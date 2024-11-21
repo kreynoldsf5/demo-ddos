@@ -1,0 +1,22 @@
+services:
+  flask-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flask-app
+    networks:
+      - app-network
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: nginx
+    ports:
+      - "8080:80"  # Map host port 8080 to container port 80
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
